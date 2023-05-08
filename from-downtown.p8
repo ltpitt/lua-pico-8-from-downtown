@@ -1,207 +1,264 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
+-- from downtown
+-- by ltpitt
 
+-- global constants
+local screenwidth = 127
+local screenheight = 127
 
-
-function _draw()
- cls()
- if game.state == game.states.menu then
-     draw_menu()
- elseif game.state == game.states.game then
-     draw_game()
- elseif game.state == game.states.pause then
-     draw_pause()
- elseif game.state == game.states.gameover then
-     draw_gameover()
- end
-end
-
-function draw_hud()
- -- print score
- print("score:" .. game.score, 2, 4, colors.grey)
- -- print lives
- -- print("lives:", 74, 4, colors.grey)
- -- spr(0,100,3)
- -- print shoot_timer_1
- print(game.shoot_timer_1, 2, 120, colors.grey)
-end
-
-function _update()
- if game.state == game.states.menu then
-     update_menu()
- elseif game.state == game.states.game then
-     update_game()
- elseif game.state == game.states.pause then
-     update_pause()
- elseif game.state == game.states.gameover then
-     update_gameover()
- end
-end
-
-function _init(  )
- cls()
- --
- -- general game init
- --
-
- game = {
+-- game state table
+local game = {
   score = 0,
   timer = 0,
-  screen_size = 128,
-  tick=1,
-  initialized=false,
-  shoot_timer_1 = time()
- }
- game.states = {
-  menu = 0,
-  game = 1,
-  pause = 2,
-  gameover = 3
- }
- game.state = game.states.menu
- -- colors
- colors={
-  black=0,
-  darkblue=1,
-  darkpurple=2,
-  darkgreen=3,
-  brown=4,
-  darkgrey=5,
-  grey=6,
-  white=7,
-  red=8,
-  orange=9,
-  yellow=10,
-  green=11,
-  blue=12,
-  purple=13,
-  darkpink=14,
-  pink=15
- }
- --
- -- init_menu
- --
+  tick = 1,
+  initialized = false,
+  shoot_timer_1 = 0,
+  shoot_timer_1_direction = 1,
+  states = {
+    menu = 0,
+    game = 1,
+    pause = 2,
+    gameover = 3
+  },
+  state = nil -- will be set in _init()
+}
 
- --music
+-- colors table
+local colors = {
+  black = 0,
+  darkblue = 1,
+  darkpurple = 2,
+  darkgreen = 3,
+  brown = 4,
+  darkgrey = 5,
+  grey = 6,
+  white = 7,
+  red = 8,
+  orange = 9,
+  yellow = 10,
+  green = 11,
+  blue = 12,
+  purple = 13,
+  darkpink = 14,
+  pink = 15
+}
+
+-- player table
+local player1 = {
+ x = screenwidth /2, -- center the player horizontally
+ y = screenheight /2, -- center the player vertically
+ width = 7, -- sprite width
+ height =7, -- sprite height
+}
+
+-- init function
+function _init()
+ -- start music (uncomment if needed)
  -- start_music(3)
 
- --center of screen
- centerx=64  centery=80
+ -- set game state to menu
+ game.state = game.states.menu
 
- -- init game
- if game.initialized==false then
-  game.initialized=true
- end
+ -- init game if not initialized
+ if game.initialized == false then
+   game.initialized=true
 
-end
+   -- add any other initialization code here
 
-function update_timer()
- game.timer = game.timer + 1
- if (game.timer>30) then
-   game.timer = 1
  end
 end
 
--- menu
-function update_menu()
- foreach(entities,update_entity_animation)
- update_timer()
+-- draw function
+function _draw()
+ -- clear screen
+ cls()
+
+ -- draw according to game state
+ if game.state == game.states.menu then
+   draw_menu()
+ elseif game.state == game.states.game then
+   draw_game()
+ elseif game.state == game.states.pause then
+   draw_pause()
+ elseif game.state == game.states.gameover then
+   draw_gameover()
+ end 
 end
 
+-- draw hud function (for game state)
+function draw_hud()
+ print("p1:" .. game.score,2,4,colors.grey)
+ print("p2:",104,4,colors.grey)
+ print(game.shoot_timer_1,2,120,colors.grey)
+end
+
+-- draw menu function (for menu state)
 function draw_menu()
  draw_menu_logo()
- foreach(entities,draw_entities)
+ foreach(entities,draw_entities) -- draw entities (if any)
  draw_menu_start_key()
  draw_menu_footer()
- if btn(4) then
-  game.state = game.states.game
+
+ -- check for input to start game
+ if btn(4) then 
+   game.state=game.states.game 
+ end 
+end
+
+-- draw menu logo function (for menu state)
+function draw_menu_logo()
+ -- add code to draw logo here 
+end
+
+-- draw menu start key function (for menu state)
+function draw_menu_start_key()
+ print("press c key to start",24,90,colors.red)
+end
+
+-- draw menu footer function (for menu state)
+function draw_menu_footer()
+ local color=(flr(rnd(19))) -- random color 
+ print("pipisoft",8,120,color) 
+end
+
+-- draw game function (for game state)
+function draw_game()
+ cls() -- clear screen 
+ draw_hud() -- draw hud 
+end
+
+-- update function
+function _update()
+ -- update according to game state
+ if game.state == game.states.menu then
+   update_menu()
+ elseif game.state == game.states.game then
+   update_game()
+ elseif game.state == game.states.pause then
+   update_pause()
+ elseif game.state == game.states.gameover then
+   update_gameover()
+ end 
+end
+
+-- update timer function (for game and menu states)
+function update_timer()
+ -- increment timer
+ game.timer = game.timer + 1
+
+ -- reset timer if it reaches 30
+ if (game.timer > 30) then 
+   game.timer = 1 
  end
 
+ -- get the fractional part of time
+ local new_t = t() % 2
+
+ -- update shoot timer based on direction
+ game.shoot_timer_1 = game.shoot_timer_1_direction * new_t
+
+ -- change direction and reset timer if it reaches limits
+ if game.shoot_timer_1 > 1 then 
+   game.shoot_timer_1 = 0 
+   game.shoot_timer_1_direction = -1 
+ elseif game.shoot_timer_1 <= -1.95 then 
+   game.shoot_timer_1 = 0 
+   game.shoot_timer_1_direction = 1 
+ elseif game.shoot_timer_1 < 0 then 
+   game.shoot_timer_1 += 2 
+ end
 end
 
-function draw_menu_logo()
+-- update menu function (for menu state)
+function update_menu()
+ -- update entities (if any)
+ foreach(entities,update_entity_animation)
+
+ -- update timer
+ update_timer()
 end
 
-function draw_menu_start_key()
-   print("press c key to start",24,90,colors.red)
-end
-
-function draw_menu_footer()
-   color = (flr(rnd(19)))
-   print("a production amazing software",8,120,color)
-end
-
--- game
-
+-- update game function (for game state)
 function update_game()
+ -- update timer
  update_timer()
 
- if (time() - game.shoot_timer_1 > 1) then
-    game.shoot_timer_1 = 0
- end
-
+ -- update player
+ playercontrol()
 end
 
-function draw_game()
- cls()
- draw_hud()
-end
-
--- pause
+-- update pause function (for pause state)
 function update_pause()
+ -- add code to handle pause here
 end
 
+-- draw pause function (for pause state)
 function draw_pause()
+ -- add code to draw pause screen here
 end
 
--- game over
+-- update gameover function (for gameover state)
 function update_gameover()
+ -- add code to handle gameover here
 end
 
+-- draw gameover function (for gameover state)
 function draw_gameover()
+ -- add code to draw gameover screen here
 end
 
--- utils
+-- player control function (for game state)
+function playercontrol()
+ -- move player according to input
+ if (btn(0)) then player1.x -= 1 end
+ if (btn(1)) then player1.x += 1 end
+ if (btn(2)) then player1.y -= 1 end
+ if (btn(3)) then player1.y += 1 end
 
--- calculate center position in x axis
--- this is asuming the text uses the system font which is 4px wide
-function text_x_pos(text)
- local letter_width = 4
- -- first calculate how wide is the text
- local width = #text * letter_width
- -- if it's wider than the screen then it's multiple lines so we return 0
- if width > game.screen_size then
-     return 0
+ -- check if the player is still onscreen and clamp it if not
+ if (player1.x <= 0) then player1.x = 0 end
+ if (player1.x >= screenwidth - player1.width) then player1.x = screenwidth - player1.width end
+ if (player1.y <= 0) then player1.y = 0 end
+ if (player1.y >= screenheight - player1.height) then player1.y = screenheight - player1.height end
+end
+
+
+function playerdraw()
+ spr(1,player1.x,player1.y)
+end
+
+-- utils -- library functions 
+
+function hcenter(s) -- s is the string to center 
+ -- string length times the pixels in a char's width cut in half and rounded down 
+ return (screenwidth /2)-flr((#s*4)/2) 
+end
+
+function vcenter(s) -- s is the string to center 
+ -- string char's height cut in half and rounded down 
+ return (screenheight /2)-flr(5/2) 
+end
+
+-- collision check function 
+function iscolliding(obj1,obj2) -- obj1 and obj2 are tables with x,y,w,h properties 
+ local x1 = obj1.x
+ local y1 = obj1.y
+ local w1 = obj1.w
+ local h1 = obj1.h
+ 
+ local x2 = obj2.x
+ local y2 = obj2.y
+ local w2 = obj2.w
+ local h2 = obj2.h
+ 
+ -- check for overlapping rectangles using aabb method 
+ if(x1 < (x2 + w2) and (x1 + w1) > x2 and y1 < (y2 + h2) and (y1 + h1) > y2) then 
+   return true -- collision detected 
+ else
+   return false -- no collision 
  end
- return game.screen_size / 2 - flr(width / 2)
-end
-
--- prints black bordered text
-function write(text,x,y,color)
- for i=0,2 do
-     for j=0,2 do
-         print(text,x+i,y+j, 0)
-     end
- end
- print(text,x+1,y+1,color)
-end
-
--- play music
-function start_music(n)
- if (not music_playing) then
-  music(n) music_playing=true
- end
-end
-
--- stop music
-function stop_music()
- music(-1, 300) music_playing=false
-end
-
--- returns if module of a/b == 0. equals to a % b == 0 in other languages
-function mod_zero(a,b)
- return a - flr(a/b)*b == 0
 end
 
 __gfx__
